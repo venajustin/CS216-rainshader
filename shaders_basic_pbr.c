@@ -97,8 +97,8 @@ int main()
     camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
 
     // Load PBR shader and setup all required locations
-    Shader shader = LoadShader(TextFormat("resources/shaders/glsl%i/pbr.vs", GLSL_VERSION),
-                               TextFormat("resources/shaders/glsl%i/pbr.fs", GLSL_VERSION));
+    Shader shader = LoadShader(TextFormat("shaders/pbr.vs", GLSL_VERSION),
+                               TextFormat("shaders/pbr.fs", GLSL_VERSION));
     shader.locs[SHADER_LOC_MAP_ALBEDO] = GetShaderLocation(shader, "albedoMap");
     // WARNING: Metalness, roughness, and ambient occlusion are all packed into a MRA texture
     // They are passed as to the SHADER_LOC_MAP_METALNESS location for convenience,
