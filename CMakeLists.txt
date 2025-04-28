@@ -3,6 +3,13 @@ project(rainshader)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    
+set(resources_dir)
+set(shaders_dir)
+file(GLOB resources resources/*)
+list(APPEND resources_dir ${resources})
+file(GLOB shaders shaders/*)
+list(APPEND shaders_dir ${shaders})
 
 # Dependencies
 set(RAYLIB_VERSION 5.5)
@@ -41,3 +48,7 @@ if (APPLE)
     target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
     target_link_libraries(${PROJECT_NAME} "-framework OpenGL")
 endif()
+
+# Copy all of the resource files to the destination
+file(COPY ${resources_dir} DESTINATION "resources/")
+file(COPY ${shaders_dir} DESTINATION "shaders/")
