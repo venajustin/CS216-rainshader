@@ -1,3 +1,6 @@
+# Configuration based on raylib example CMake starter project
+# Compiling for web untested and unsupported
+#
 cmake_minimum_required(VERSION 3.11) # FetchContent is available in 3.11+
 project(rainshader)
 
@@ -29,7 +32,6 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
-# Our Project
 
 add_executable(${PROJECT_NAME} shaders_basic_pbr.c)
 #set(raylib_VERBOSE 1)
