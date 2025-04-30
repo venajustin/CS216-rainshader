@@ -32,10 +32,12 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
+add_executable(${PROJECT_NAME} rain_simulator.c)
 
-add_executable(${PROJECT_NAME} shaders_basic_pbr.c)
+#add_executable(${PROJECT_NAME} shaders_basic_pbr.c)
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
+
 
 
 # Web Configurations
