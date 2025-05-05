@@ -4,6 +4,11 @@
 #include "raymath.h"
 #include "stdlib.h"
 
+typedef struct Particle {
+    Vector3 p;
+    Vector3 v;
+} Particle;
+
 Vector3 randomPos(Vector3 min, Vector3 max) {
         
     double xrand = rand()/(double)RAND_MAX;

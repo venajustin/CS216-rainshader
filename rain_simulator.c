@@ -36,6 +36,8 @@
 #define MAX_PARTICLES 150
 #define PARTICLE_SPAWN_RATE .01
 
+#define GRAVITY -.098
+
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
@@ -69,6 +71,7 @@ typedef struct {
 // Global Variables Definition
 //----------------------------------------------------------------------------------
 static int lightCount = 0;     // Current number of dynamic lights that have been created
+static bool logging = false;
 
 //----------------------------------------------------------------------------------
 // Module specific Functions Declaration
@@ -208,7 +211,7 @@ int main()
 
 
 
-    Vector3 particle_arr[MAX_PARTICLES] = {0};
+    Particle particle_arr[MAX_PARTICLES] = {0};
     int particle_count = 0;
     int particle_age[MAX_PARTICLES] = {0};
     double raindrop_timer = 0;
@@ -244,10 +247,21 @@ int main()
         if (IsKeyPressed(KEY_THREE)) { lights[3].enabled = !lights[3].enabled; }
         if (IsKeyPressed(KEY_FOUR)) { lights[0].enabled = !lights[0].enabled; }
 
+        // toggle logging with l
+        if (IsKeyPressed(KEY_L)) { 
+            logging = !logging;
+        }
+
+
         // Update light values on shader (actually, only enable/disable them)
         for (int i = 0; i < MAX_LIGHTS; i++) UpdateLight(shader, lights[i]);
 
-        
+       
+
+        //---------------------------------------------------------------------
+        // Spawn raindrops
+        //---------------------------------------------------------------------
+
         if ( raindrop_timer > PARTICLE_SPAWN_RATE) {
             raindrop_timer = 0;
    
@@ -266,11 +280,19 @@ int main()
                 particle_count++;
             }
             // assign position to particle
-            particle_arr[next_particle_loc] = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
+            particle_arr[next_particle_loc].p
+                = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
+
+            particle_arr[next_particle_loc].v
+                = (Vector3){0.0, 0.0, 0.0};
+
+            particle_age[next_particle_loc] = 0;
+           
+            if (logging)
             printf("Particle spawned at %f %f %f using slot %d\n", 
-                    particle_arr[next_particle_loc].x, 
-                    particle_arr[next_particle_loc].y,
-                    particle_arr[next_particle_loc].z,
+                    particle_arr[next_particle_loc].p.x, 
+                    particle_arr[next_particle_loc].p.y,
+                    particle_arr[next_particle_loc].p.z,
                     next_particle_loc
                   );
         }
@@ -278,6 +300,31 @@ int main()
         for (int i = 0; i < particle_count; i++) {
             particle_age[i]++;
         }
+
+        //---------------------------------------------------------------------
+        // Animate Raindrops
+        //---------------------------------------------------------------------
+
+        for (int i = 0; i < particle_count; i++) {
+            // interpolation
+            Particle* curr = &particle_arr[i]; 
+            Vector3 vnew = curr->v;
+
+            vnew.y = vnew.y + GRAVITY * dT;
+
+            Vector3 vmid = curr->v;
+            vmid.x = vmid.x + vnew.x / 2;
+            vmid.y = vmid.y + vnew.y / 2;
+            vmid.z = vmid.z + vnew.z / 2;
+
+            curr->v = vnew;
+
+            curr->p.x += vmid.x;
+            curr->p.y += vmid.y;
+            curr->p.z += vmid.z;
+
+        }
+
 
 //        for (int i = 0; i < 10; i++ ) {
 //            printf("pos: %f %f %f\n", particle_arr[i].x, particle_arr[i].y, particle_arr[i].z);
@@ -320,7 +367,7 @@ int main()
                 
                 Color particle_color = (Color){ 255, 50, 50, 255 };
                 for (int i = 0; i < particle_count; i++ ) {
-                    DrawSphereEx(particle_arr[i], 0.01f, 2, 2, particle_color);
+                    DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
                 }
                 
             EndMode3D();
