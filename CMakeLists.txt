@@ -32,12 +32,36 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
-add_executable(${PROJECT_NAME} rain_simulator.c)
+
+set(RAYGUI_VERSION 4.0)
+
+# raygui
+find_package(raygui ${RAYGUI_VERSION} QUIET)
+if (NOT raygui_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        raygui
+        GIT_REPOSITORY https://github.com/raysan5/raygui.git
+        GIT_TAG ${RAYGUI_VERSION}
+    )
+    FetchContent_GetProperties(raygui)
+    if (NOT raygui_POPULATED)
+        FetchContent_Populate(raygui)
+        FetchContent_MakeAvailable(raygui)
+    endif()
+endif()
+
+
+
+add_executable(${PROJECT_NAME} rain_simulator.c )
 
 #add_executable(${PROJECT_NAME} shaders_basic_pbr.c)
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib)
+target_link_libraries(${PROJECT_NAME} raylib m)
 
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${raygui_SOURCE_DIR}/src 
+    ${raygui_SOURCE_DIR}/styles/dark)
 
 
 # Web Configurations

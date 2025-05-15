@@ -31,6 +31,11 @@
 #include <stdio.h>
 #include "particles.h"
 
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
+#include "style_dark.h"
+
+
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
 #define MAX_PARTICLES 150
@@ -72,6 +77,7 @@ typedef struct {
 //----------------------------------------------------------------------------------
 static int lightCount = 0;     // Current number of dynamic lights that have been created
 static bool logging = false;
+bool toggle_rain = true;
 
 //----------------------------------------------------------------------------------
 // Module specific Functions Declaration
@@ -95,6 +101,7 @@ int main()
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "raylib [shaders] example - basic pbr");
+    GuiLoadStyleDark();
 
     //set rand seed
     srand((unsigned int) GetTime());
@@ -262,7 +269,7 @@ int main()
         // Spawn raindrops
         //---------------------------------------------------------------------
 
-        if ( raindrop_timer > PARTICLE_SPAWN_RATE) {
+        if ( raindrop_timer > PARTICLE_SPAWN_RATE && toggle_rain ) {
             raindrop_timer = 0;
    
             int next_particle_loc = particle_count;
@@ -371,10 +378,14 @@ int main()
                 }
                 
             EndMode3D();
-            
-            DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
 
-            DrawText("(c) Old Rusty Car model by Renafox (https://skfb.ly/LxRy)", screenWidth - 320, screenHeight - 20, 10, LIGHTGRAY);
+            GuiLabel((Rectangle){ 10, 40, 90, 24 }, "Toggle Rain:");
+            GuiToggle((Rectangle){90, 40, 60, 24}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
+            
+            
+            // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
+
+            // DrawText("(c) Old Rusty Car model by Renafox (https://skfb.ly/LxRy)", screenWidth - 320, screenHeight - 20, 10, LIGHTGRAY);
             
             DrawFPS(10, 10);
 
