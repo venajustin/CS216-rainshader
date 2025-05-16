@@ -212,6 +212,7 @@ int main()
         if (IsKeyPressed(KEY_THREE)) { lights[3].enabled = !lights[3].enabled; }
         if (IsKeyPressed(KEY_FOUR)) { lights[0].enabled = !lights[0].enabled; }
 
+
         // Update light values on shader (actually, only enable/disable them)
         for (int i = 0; i < MAX_LIGHTS; i++) UpdateLight(shader, lights[i]);
         //----------------------------------------------------------------------------------
