@@ -255,8 +255,8 @@ int main(int argc, char** argv) {
 
 
     // Define mesh to be instanced
-    Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
-    // Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
+    // Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
+    Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
 
     // Define transforms to be uploaded to GPU for instances
     Matrix *transforms = (Matrix *)RL_CALLOC(MAX_PARTICLES, sizeof(Matrix));   // Pre-multiplied transformations passed to rlgl
@@ -264,9 +264,14 @@ int main(int argc, char** argv) {
     // Translate and rotate planes randomly
     for (int i = 0; i < MAX_PARTICLES; i++)
     {
-        Matrix translation = MatrixTranslate((float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50), (float)GetRandomValue(-50, 50));
-        Vector3 axis = Vector3Normalize((Vector3){ (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360) });
-        float angle = (float)GetRandomValue(0, 180)*DEG2RAD;
+        Matrix translation = MatrixTranslate((float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10));
+
+        Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
+        float angle = .5 * PI;
+
+//        Vector3 axis = Vector3Normalize((Vector3){ (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360) });
+//        float angle = (float)GetRandomValue(0, 180)*DEG2RAD;
+ 
         Matrix rotation = MatrixRotate(axis, angle);
 
         transforms[i] = MatrixMultiply(rotation, translation);
@@ -277,12 +282,12 @@ int main(int argc, char** argv) {
                                TextFormat("shaders/lighting.fs", GLSL_VERSION));
 
     // Get shader locations
-    shader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(shader, "mvp");
-    shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shader, "viewPos");
+    rainshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(rainshader, "mvp");
+    rainshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(rainshader, "viewPos");
 
-    // Set shader value: ambient light level
-    int ambientLoc = GetShaderLocation(shader, "ambient");
-    SetShaderValue(shader, ambientLoc, (float[4]){ 0.2f, 0.2f, 0.2f, 1.0f }, SHADER_UNIFORM_VEC4);
+    int ambientLoc = GetShaderLocation(rainshader, "ambient");
+    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.2f, 0.2f, 0.2f, 1.0f }, SHADER_UNIFORM_VEC4);
+
 
     Material matInstances = LoadMaterialDefault();
     matInstances.shader = rainshader;
@@ -351,6 +356,14 @@ int main(int argc, char** argv) {
             // assign position to particle
             particle_arr[next_particle_loc].p
                 = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
+        
+            Matrix translation = MatrixTranslate(particle_arr[next_particle_loc].p.x,
+                    particle_arr[next_particle_loc].p.y,
+                    particle_arr[next_particle_loc].p.z);
+            Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
+            float angle = .5 * PI;
+            Matrix rotation = MatrixRotate(axis, angle);
+            transforms[next_particle_loc] = MatrixMultiply(rotation, translation);
 
             particle_arr[next_particle_loc].v
                 = (Vector3){0.0, 0.0, 0.0};
@@ -391,6 +404,10 @@ int main(int argc, char** argv) {
             curr->p.x += vmid.x;
             curr->p.y += vmid.y;
             curr->p.z += vmid.z;
+
+            Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
+
+            transforms[i] = MatrixMultiply(transforms[i], translation);
         }
 
 
@@ -441,7 +458,7 @@ int main(int argc, char** argv) {
         //     DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
         // }
 
-        DrawMeshInstanced(rdropmesh, matInstances, transforms, MAX_PARTICLES);
+        DrawMeshInstanced(rdropmesh, matInstances, transforms, particle_count);
 
 
 
