@@ -42,7 +42,8 @@
 #define MAX_PARTICLES 500
 #define PARTICLE_SPAWN_RATE .01
 
-#define PARTICLE_SPAWN_HEIGHT 40
+// #define PARTICLE_SPAWN_HEIGHT 40
+#define PARTICLE_SPAWN_HEIGHT 4
 #define PARTICLE_SPAWN_WIDTH 5
 
 #define GRAVITY -.098
@@ -261,6 +262,8 @@ int main(int argc, char** argv) {
 
     Texture2D raintexture = LoadTexture("resources/gradienttest.png");
 
+    printf("raintexture width: %d\nraintexture height: %d\n", raintexture.width, raintexture.height);
+
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
     //---------------------------------------------------------------------------------------
@@ -418,7 +421,11 @@ int main(int argc, char** argv) {
 
         Color particle_color = (Color){255, 50, 50, 255};
         for (int i = 0; i < particle_count; i++) {
-            DrawBillboardRec(camera, raintexture, (Rectangle){ 0, 0, 32, 100 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
+
+
+          DrawBillboardRec(camera, raintexture, (Rectangle){ 0, 0, 16.0, 80.0 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
+            
+            
             // DrawSphere(particle_arr[i].p, 0.1f, 10, 10, particle_color);
         }
 
