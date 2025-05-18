@@ -31,6 +31,7 @@
 #include <stdlib.h>             // Required for: NULL
 #include <stdio.h>
 #include "particles.h"
+#include "texturemanager.h"
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -260,9 +261,20 @@ int main(int argc, char** argv) {
     double curr_time;
 
 
-    Texture2D raintexture = LoadTexture("resources/gradienttest.png");
+    Texture2D gradienttexture = LoadTexture("resources/gradienttest.png");
 
-    printf("raintexture width: %d\nraintexture height: %d\n", raintexture.width, raintexture.height);
+    printf("gradienttexture width: %d\ngradienttexture height: %d\n", gradienttexture.width, gradienttexture.height);
+
+    ///////////////////////////////////////////////////////////////////////////
+    //                   LOAD RAIN TEXTURES
+    ///////////////////////////////////////////////////////////////////////////
+    
+    // test
+    TexTreeNode root = LoadRainTextures("resources/point_light_database/"); 
+    
+    UnloadRainTextures(root);
+
+
 
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -423,7 +435,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < particle_count; i++) {
 
 
-          DrawBillboardRec(camera, raintexture, (Rectangle){ 0, 0, 16.0, 80.0 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
+          DrawBillboardRec(camera, gradienttexture, (Rectangle){ 0, 0, 16.0, 80.0 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
             
             
             // DrawSphere(particle_arr[i].p, 0.1f, 10, 10, particle_color);
@@ -469,6 +481,8 @@ int main(int argc, char** argv) {
     UnloadModel(floor);
 
     UnloadShader(shader); // Unload Shader
+                          //
+    UnloadTexture(gradienttexture);
 
     CloseWindow(); // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
