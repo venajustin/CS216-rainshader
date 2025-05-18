@@ -39,8 +39,11 @@
 
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
-#define MAX_PARTICLES 150
+#define MAX_PARTICLES 500
 #define PARTICLE_SPAWN_RATE .01
+
+#define PARTICLE_SPAWN_HEIGHT 40
+#define PARTICLE_SPAWN_WIDTH 5
 
 #define GRAVITY -.098
 
@@ -79,6 +82,7 @@ typedef struct {
 static int lightCount = 0; // Current number of dynamic lights that have been created
 static bool logging = false;
 bool toggle_rain = true;
+bool toggle_orbit = true;
 
 int screenWidth = 1920;
 int screenHeight = 1080;
@@ -255,44 +259,8 @@ int main(int argc, char** argv) {
     double curr_time;
 
 
-    // Define mesh to be instanced
-     // Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
-     Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
+    Texture2D raintexture = LoadTexture("resources/gradienttest.png");
 
-    // Define transforms to be uploaded to GPU for instances
-    Matrix *transforms = (Matrix *)RL_CALLOC(MAX_PARTICLES, sizeof(Matrix));   // Pre-multiplied transformations passed to rlgl
-
-    // Translate and rotate planes randomly
-    for (int i = 0; i < MAX_PARTICLES; i++)
-    {
-        Matrix translation = MatrixTranslate((float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10));
-
-        Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-        float angle = .5 * PI;
-
-//        Vector3 axis = Vector3Normalize((Vector3){ (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360) });
-//        float angle = (float)GetRandomValue(0, 180)*DEG2RAD;
- 
-        Matrix rotation = MatrixRotate(axis, angle);
-
-        transforms[i] = MatrixMultiply(rotation, translation);
-    }
-
-    // Load lighting shader
-    Shader rainshader = LoadShader(TextFormat("shaders/rain.vs", GLSL_VERSION),
-                               TextFormat("shaders/rain.fs", GLSL_VERSION));
-
-    // Get shader locations
-    rainshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(rainshader, "mvp");
-    rainshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(rainshader, "viewPos");
-
-    int ambientLoc = GetShaderLocation(rainshader, "ambient");
-    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.2f, 0.2f, 0.2f, 1.0f }, SHADER_UNIFORM_VEC4);
-
-
-    Material matInstances = LoadMaterialDefault();
-    matInstances.shader = rainshader;
-    matInstances.maps[MATERIAL_MAP_DIFFUSE].color = RED;
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
     //---------------------------------------------------------------------------------------
@@ -308,12 +276,14 @@ int main(int argc, char** argv) {
 
 
         //----------------------------------------------------------------------------------
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        if (toggle_orbit) 
+            UpdateCamera(&camera, CAMERA_ORBITAL);
+        else 
+            UpdateCamera(&camera, CAMERA_PERSPECTIVE);
 
         // Update the shader with the camera view vector (points towards { 0.0f, 0.0f, 0.0f })
         float cameraPos[3] = {camera.position.x, camera.position.y, camera.position.z};
         SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
-        SetShaderValue(rainshader, rainshader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
 
         // Check key inputs to enable/disable lights
@@ -357,16 +327,11 @@ int main(int argc, char** argv) {
             }
             // assign position to particle
             particle_arr[next_particle_loc].p
-                = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
+                = randomPos(
+                        (Vector3){-PARTICLE_SPAWN_WIDTH,  PARTICLE_SPAWN_HEIGHT, -PARTICLE_SPAWN_WIDTH}, 
+                        (Vector3){ PARTICLE_SPAWN_WIDTH,  PARTICLE_SPAWN_HEIGHT,  PARTICLE_SPAWN_WIDTH}
+                    );
         
-            Matrix translation = MatrixTranslate(particle_arr[next_particle_loc].p.x,
-                    particle_arr[next_particle_loc].p.y,
-                    particle_arr[next_particle_loc].p.z);
-            Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-            float angle = .5 * PI;
-            Matrix rotation = MatrixRotate(axis, angle);
-            transforms[next_particle_loc] = MatrixMultiply(rotation, translation);
-
             particle_arr[next_particle_loc].v
                 = (Vector3){0.0, 0.0, 0.0};
 
@@ -407,38 +372,6 @@ int main(int argc, char** argv) {
             curr->p.y += vmid.y;
             curr->p.z += vmid.z;
 
-            // Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
-            Matrix translation = MatrixTranslate(curr->p.x, curr->p.y, curr->p.z);
-
-            // rotation to face camera
-            Vector3 ogNormal = (Vector3){ 0.0, 0.0, 1.0 }; // norm of all obj
-            Vector3 camPos = camera.position;
-            
-            Vector3 d = Vector3Subtract(camPos , curr->p);
-            d = Vector3Normalize(d);
-            float cosTheta = Vector3DotProduct(ogNormal, d);
-            Vector3 axis = Vector3Normalize(Vector3CrossProduct(ogNormal, d));
-            if (cosTheta < -0.9999) {
-                axis = (Vector3) { 1.0, 0.0, 0.0 }; // an orthogonal vec to ogNormal
-            }
-
-            // rotation matrix from axis angle
-            float s = sqrt(1.0 - cosTheta * cosTheta);
-            float t = 1.0 - cosTheta;
-
-            float x = axis.x;
-            float y = axis.y;
-            float z = axis.z;
-
-            Matrix rotation = MatrixInvert(MatrixLookAt(curr->p, camPos, (Vector3){0.0,1.0,0.0}));
-
-
-             Vector3 a = (Vector3){ 1.0, 0.0, 0.0 };
-             float angle = -1 * .5 * PI;
-             Matrix baseRotation = MatrixRotate(a, angle);
-             rotation = MatrixMultiply(baseRotation, rotation);
-        
-             transforms[i] = MatrixMultiply(rotation, translation);
         }
 
 
@@ -483,13 +416,12 @@ int main(int argc, char** argv) {
         }
 
 
+        Color particle_color = (Color){255, 50, 50, 255};
+        for (int i = 0; i < particle_count; i++) {
+            DrawBillboardRec(camera, raintexture, (Rectangle){ 0, 0, 32, 100 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
+            // DrawSphere(particle_arr[i].p, 0.1f, 10, 10, particle_color);
+        }
 
-        // Color particle_color = (Color){255, 50, 50, 255};
-        // for (int i = 0; i < particle_count; i++) {
-        //     DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
-        // }
-
-        DrawMeshInstanced(rdropmesh, matInstances, transforms, particle_count);
 
 
 
@@ -500,6 +432,9 @@ int main(int argc, char** argv) {
 
         GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Toggle Rain:");
         GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
+
+        GuiLabel((Rectangle){1 pw, 25 ph, 5 pw, 3 ph}, "Camera:");
+        GuiToggle((Rectangle){6 pw, 25 ph, 5 pw, 3 ph}, ((toggle_orbit) ? "orbit" : "fixed"), &toggle_orbit);
 
 
         // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
