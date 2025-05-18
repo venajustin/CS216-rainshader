@@ -20,6 +20,7 @@
 ********************************************************************************************/
 
 #include "raylib.h"
+#include <raymath.h>
 
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION            330
@@ -255,8 +256,8 @@ int main(int argc, char** argv) {
 
 
     // Define mesh to be instanced
-    // Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
-    Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
+     // Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
+     Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
 
     // Define transforms to be uploaded to GPU for instances
     Matrix *transforms = (Matrix *)RL_CALLOC(MAX_PARTICLES, sizeof(Matrix));   // Pre-multiplied transformations passed to rlgl
@@ -278,8 +279,8 @@ int main(int argc, char** argv) {
     }
 
     // Load lighting shader
-    Shader rainshader = LoadShader(TextFormat("shaders/lighting_instancing.vs", GLSL_VERSION),
-                               TextFormat("shaders/lighting.fs", GLSL_VERSION));
+    Shader rainshader = LoadShader(TextFormat("shaders/rain.vs", GLSL_VERSION),
+                               TextFormat("shaders/rain.fs", GLSL_VERSION));
 
     // Get shader locations
     rainshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(rainshader, "mvp");
@@ -340,7 +341,8 @@ int main(int argc, char** argv) {
             raindrop_timer = 0;
 
             int next_particle_loc = particle_count;
-            if (particle_count > MAX_PARTICLES) {
+            if (particle_count >= MAX_PARTICLES) {
+                particle_count = MAX_PARTICLES;
                 // find oldest particle and replace
                 int oldest = 0;
                 for (int i = 0; i < particle_count; i++) {
@@ -405,9 +407,38 @@ int main(int argc, char** argv) {
             curr->p.y += vmid.y;
             curr->p.z += vmid.z;
 
-            Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
+            // Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
+            Matrix translation = MatrixTranslate(curr->p.x, curr->p.y, curr->p.z);
 
-            transforms[i] = MatrixMultiply(transforms[i], translation);
+            // rotation to face camera
+            Vector3 ogNormal = (Vector3){ 0.0, 0.0, 1.0 }; // norm of all obj
+            Vector3 camPos = camera.position;
+            
+            Vector3 d = Vector3Subtract(camPos , curr->p);
+            d = Vector3Normalize(d);
+            float cosTheta = Vector3DotProduct(ogNormal, d);
+            Vector3 axis = Vector3Normalize(Vector3CrossProduct(ogNormal, d));
+            if (cosTheta < -0.9999) {
+                axis = (Vector3) { 1.0, 0.0, 0.0 }; // an orthogonal vec to ogNormal
+            }
+
+            // rotation matrix from axis angle
+            float s = sqrt(1.0 - cosTheta * cosTheta);
+            float t = 1.0 - cosTheta;
+
+            float x = axis.x;
+            float y = axis.y;
+            float z = axis.z;
+
+            Matrix rotation = MatrixInvert(MatrixLookAt(curr->p, camPos, (Vector3){0.0,1.0,0.0}));
+
+
+             Vector3 a = (Vector3){ 1.0, 0.0, 0.0 };
+             float angle = -1 * .5 * PI;
+             Matrix baseRotation = MatrixRotate(a, angle);
+             rotation = MatrixMultiply(baseRotation, rotation);
+        
+             transforms[i] = MatrixMultiply(rotation, translation);
         }
 
 
