@@ -271,7 +271,6 @@ int main(int argc, char** argv) {
     
     // test
     TexTreeNode root = LoadRainTextures("resources/point_light_database/"); 
-    
     UnloadRainTextures(root);
 
 
