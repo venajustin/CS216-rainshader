@@ -45,8 +45,8 @@ void main()
     // Texel color fetching from texture sampler
     // vec4 texelColor = texture2D(texture0, newTexCoord);
 
-    // start off with black pixel and we add on the drop from each light
-    vec4 texelColor = texture2D(texture0, newTexCoord) * ambient;
+    // start off with ambient light
+    vec4 texelColor = texture2D(texture0, newTexCoord) * ambient / 5.0;
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);
@@ -71,20 +71,22 @@ void main()
     
                 if (lights[i].type == LIGHT_POINT)
                 {
-                    light = normalize(lights[i].position - fragPosition);
+                    light = lights[i].position - fragPosition;
                     distance = length(light);
                     light = normalize(light);
                 }
 
             
                 float intensity = 1.0  / (distance * distance);
+                intensity *= 20.0;
 
-                // each light direction pulls a different rain texture
-                float camToLight = acos(dot(light, viewD));
+                // angle between the camera and light on the xz plane
+                float camToLight = acos(dot(vec2(light.xz), vec2(viewD.xz)));
 
 
                 int section = int(camToLight / 2.0 /3.1415962 * 9.0);
 
+                // offset into texture
                 vec2 sectionTexCoord = newTexCoord;
                  sectionTexCoord.x += SLICE_WIDTH * float(section);
 
@@ -92,7 +94,6 @@ void main()
                 vec4 color = texture2D(texture0, sectionTexCoord);
                 color *= intensity;
                 color *= lights[i].color;
-                color *= 0.25; // scaled down
                 texelColor += color;
                 
 

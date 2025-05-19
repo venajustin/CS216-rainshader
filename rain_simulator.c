@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
     rainshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(rainshader, "viewPos");
 
     int ambientLoc = GetShaderLocation(rainshader, "ambient");
-    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.2f, 0.2f, 0.2f, 1.0f }, SHADER_UNIFORM_VEC4);
+    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.05f, 0.05f, 0.05f, 1.0f }, SHADER_UNIFORM_VEC4);
 
 
     Material matInstances = LoadMaterialDefault();
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
     lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 4.0f,
             rainshader);
     lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 3.3f, rainshader);
-    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 8.3f, rainshader);
+    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 15.3f, rainshader);
     lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 2.0f, rainshader);
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -379,7 +379,7 @@ int main(int argc, char** argv) {
         //---------------------------------------------------------------------
        
         rainoffset = rainoffset - (dT * RAIN_STEP);
-        if (rainoffset < 0) {
+        if (rainoffset < 0.6) { // Hacky workaround, should be < 0, but weird translations are happening < .6
             rainoffset = 1;
         }
         if (logging) {

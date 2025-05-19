@@ -2,5 +2,6 @@ build/
 .idea/
 cmake*/
 .cache/
+!resources/cv20_v30_h-_osc3.png
 resources/
 compose_texture/*.png
