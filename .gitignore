@@ -2,4 +2,5 @@ build/
 .idea/
 cmake*/
 .cache/
-resources/point_light_database/
+resources/rain_db/
+resources/drop_selection/

@@ -31,6 +31,8 @@
 #include <stdlib.h>             // Required for: NULL
 #include <stdio.h>
 #include "particles.h"
+
+#define LOADING_SCREEN
 #include "texturemanager.h"
 
 #define RAYGUI_IMPLEMENTATION
@@ -40,14 +42,15 @@
 
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
-#define MAX_PARTICLES 500
-#define PARTICLE_SPAWN_RATE .01
+#define MAX_PARTICLES 50
+#define PARTICLE_SPAWN_RATE .05
 
 // #define PARTICLE_SPAWN_HEIGHT 40
-#define PARTICLE_SPAWN_HEIGHT 4
-#define PARTICLE_SPAWN_WIDTH 5
+#define PARTICLE_SPAWN_HEIGHT 2
+#define PARTICLE_SPAWN_WIDTH 2
 
-#define GRAVITY -.098
+// #define GRAVITY -.098
+#define GRAVITY -.005
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -265,18 +268,33 @@ int main(int argc, char** argv) {
 
     printf("gradienttexture width: %d\ngradienttexture height: %d\n", gradienttexture.width, gradienttexture.height);
 
+
+
+    BeginDrawing();
+    ClearBackground(WHITE);
+
+    // print loading screen
+    char randomdots[6] = { 0 };
+    for (int i = 0; i < 5; i++) {
+        randomdots[i] = (GetRandomValue(0, 1) == 0) ? '.' : ' ';
+    }
+    char message[30] = "Loading Rain Textures";
+    strncat(randomdots, message, 6);
+
+    // print loading screen
+    DrawText(message, 500, 500, 30, BLACK);
+
+    EndDrawing();
+
+
     ///////////////////////////////////////////////////////////////////////////
     //                   LOAD RAIN TEXTURES
     ///////////////////////////////////////////////////////////////////////////
 
     SetTraceLogLevel(LOG_ERROR);
-    // test
-    TexTreeNode root = LoadRainTextures("resources/point_light_database/"); 
-    UnloadRainTextures(root);
-
+    TexTreeNode root = LoadRainTextures("resources/rain_db/");
     SetTraceLogLevel(LOG_ALL);
-
-
+    Texture2D *rain_textures = ConsolidateArray(root);
 
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -435,9 +453,15 @@ int main(int argc, char** argv) {
 
         Color particle_color = (Color){255, 50, 50, 255};
         for (int i = 0; i < particle_count; i++) {
-
-
-          DrawBillboardRec(camera, gradienttexture, (Rectangle){ 0, 0, 16.0, 80.0 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE); 
+            Texture t = { 0 };
+            TexTreeNode ttn =  root.children[2].children[2].children[2];
+            if (ttn.type != LEAF) {
+                TraceLog(LOG_WARNING, "TexTreeNode is not a LEAF node");
+            } else {
+                t = ttn.texture;
+            }
+            DrawBillboard(camera, t, particle_arr[i].p, 1.0f, WHITE);
+            // DrawBillboardRec(camera,t, (Rectangle){ 0, 0, 16.0, 80.0 }, particle_arr[i].p, (Vector2){ 0.05, 0.75 }, WHITE);
             
             
             // DrawSphere(particle_arr[i].p, 0.1f, 10, 10, particle_color);
@@ -485,6 +509,12 @@ int main(int argc, char** argv) {
     UnloadShader(shader); // Unload Shader
                           //
     UnloadTexture(gradienttexture);
+    free(rain_textures);
+
+    // unload rain textures
+    SetTraceLogLevel(LOG_ERROR);
+    UnloadRainTextures(root);
+    SetTraceLogLevel(LOG_ALL);
 
     CloseWindow(); // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
