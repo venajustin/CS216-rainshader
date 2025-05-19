@@ -2,3 +2,5 @@ build/
 .idea/
 cmake*/
 .cache/
+resources/
+compose_texture/*.png

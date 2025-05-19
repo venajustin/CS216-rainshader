@@ -34,8 +34,11 @@ uniform vec3 viewPos;
 
 void main()
 {
+
+    vec2 newTexCoord = vec2(fragTexCoord.x, fragTexCoord.y / 740.0 + 740.0);
+
     // Texel color fetching from texture sampler
-    vec4 texelColor = texture2D(texture0, fragTexCoord);
+    vec4 texelColor = texture2D(texture0, newTexCoord);
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);
@@ -43,7 +46,6 @@ void main()
 
     vec4 tint = colDiffuse * fragColor;
 
-    // NOTE: Implement here your fragment shader code
 
     for (int i = 0; i < MAX_LIGHTS; i++)
     {
@@ -70,8 +72,9 @@ void main()
         }
     }
 
+
     vec4 finalColor = (texelColor*((tint + vec4(specular, 1.0))*vec4(lightDot, 1.0)));
-    finalColor += texelColor*(ambient/10.0);
+    finalColor += texelColor*(ambient/5.0);
 
     // Gamma correction
     gl_FragColor = pow(finalColor, vec4(1.0/2.2));

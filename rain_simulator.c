@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
 
     // Define the camera to look into our 3d world
     Camera camera = {0};
-    camera.position = (Vector3){8.0f, 8.0f, 6.0f}; // Camera position
+    camera.position = (Vector3){3.0f, 3.0f, 5.0f}; // Camera position
     camera.target = (Vector3){0.0f, 0.5f, 0.0f}; // Camera looking at point
     camera.up = (Vector3){0.0f, 1.0f, 0.0f}; // Camera up vector (rotation towards target)
     camera.fovy = 45.0f; // Camera field-of-view Y
@@ -274,13 +274,6 @@ int main(int argc, char** argv) {
                 (float)GetRandomValue(- RAIN_BOUND_Y / 2.0, RAIN_BOUND_Y / 2.0),
                 (float)GetRandomValue(- RAIN_BOUND_Z / 2.0, RAIN_BOUND_Z / 2.0));
 
-//         Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-//         float angle = .5 * PI;
-// 
-//         //        Vector3 axis = Vector3Normalize((Vector3){ (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360) });
-//         //        float angle = (float)GetRandomValue(0, 180)*DEG2RAD;
-// 
-//         Matrix rotation = MatrixRotate(axis, angle);
 
         transforms[i] = translation;
         // transforms[i] = MatrixMultiply(rotation, translation);
@@ -311,6 +304,12 @@ int main(int argc, char** argv) {
     SetShaderValue(rainshader, travelHeightLoc, &travelHeight, SHADER_UNIFORM_FLOAT);
     
     int camPositionLoc = GetShaderLocation(rainshader, "campos");
+
+    Texture2D raintexture = LoadTexture("resources/rain_cv20_combined.png");
+    matInstances.maps[MATERIAL_MAP_ALBEDO].texture = raintexture;
+
+    printf("raintexture w: %d, h: %d\n", raintexture.width, raintexture.height);
+     
         
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
@@ -524,7 +523,9 @@ int main(int argc, char** argv) {
         //     DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
         // }
 
+//        BeginBlendMode(BLEND_ADDITIVE);
         DrawMeshInstanced(rdropmesh, matInstances, transforms, MAX_PARTICLES);
+ //       EndBlendMode();
 
         if (logging) {
             DrawSphere(camera.position, .5, RED);

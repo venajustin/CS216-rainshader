@@ -59,6 +59,16 @@ void main()
         vec4(0.0, 0.0, 0.0, 1.0)
     );
 
+    // apply squish
+    mat4 scalemat = mat4(
+        0.05, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    );
+    position = scalemat * position;
+
+
     // apply bilboard transformation
     position = billboardMat * position;
     
