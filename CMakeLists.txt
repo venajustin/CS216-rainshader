@@ -46,7 +46,6 @@ if (NOT raygui_FOUND)
     )
     FetchContent_GetProperties(raygui)
     if (NOT raygui_POPULATED)
-        FetchContent_Populate(raygui)
         FetchContent_MakeAvailable(raygui)
     endif()
 endif()
@@ -57,7 +56,11 @@ add_executable(${PROJECT_NAME} rain_simulator.c )
 
 #add_executable(${PROJECT_NAME} shaders_basic_pbr.c)
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib m)
+if(NOT MSVC)
+    target_link_libraries(${PROJECT_NAME} raylib m)
+else ()
+    target_link_libraries(${PROJECT_NAME} raylib)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${raygui_SOURCE_DIR}/src 
