@@ -128,10 +128,46 @@ void UnloadRainTextures(TexTreeNode root) {
             UnloadRainTextures(root.children[i]);
         }
         free(root.children);
+        printf("unloaded %d children\n", root.numChildren);
     }
     if (root.type == LEAF) {
         UnloadTexture(root.texture);
     }
 }
+
+// void dfs_print(int level, TexTreeNode node) {
+//     
+//     if (node.type == LEAF) 
+//         printf("L( %d ) ", node.texture.id);
+//     else 
+//         if (level == 0) {
+//             printf("N() ");
+//         } else {
+//             for (int i = 0; i < node.numChildren; i++) {
+//                 dfs_print(level - 1, node.children[i]);
+//             }
+//         }
+// }
+// 
+// void debugPrintTexTree(TexTreeNode root) {
+//     int level = 0;
+//     TexTreeNode node = root;
+//     while (node.numChildren > 0) {
+//         node = node.children[0];
+//         level++;
+//     }
+//     int height = level + 1;
+//     level = 0;
+// 
+//     printf("\n");
+//     while (level < height) {
+//         dfs_print(level, root);
+//         level++;
+//         printf("\n");
+//     }
+// 
+//     printf("\n\n Height: %d\n", height);
+// }
+
 
 #endif
