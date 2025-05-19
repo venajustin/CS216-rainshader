@@ -2,3 +2,8 @@ build/
 .idea/
 cmake*/
 .cache/
+resources/models/toyota*
+resources/landcruiser*
+resources/rain_db/
+resources/drop_selection/
+s
