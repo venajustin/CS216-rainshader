@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
     rainshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(rainshader, "viewPos");
 
     int ambientLoc = GetShaderLocation(rainshader, "ambient");
-    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.05f, 0.05f, 0.05f, 1.0f }, SHADER_UNIFORM_VEC4);
+    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.01f, 0.01f, 0.01f, 1.0f }, SHADER_UNIFORM_VEC4);
 
 
     Material matInstances = LoadMaterialDefault();

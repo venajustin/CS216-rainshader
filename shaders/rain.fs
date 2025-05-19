@@ -46,7 +46,7 @@ void main()
     // vec4 texelColor = texture2D(texture0, newTexCoord);
 
     // start off with ambient light
-    vec4 texelColor = texture2D(texture0, newTexCoord) * ambient / 5.0;
+    vec4 texelColor = texture2D(texture0, newTexCoord) * ambient;
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);
