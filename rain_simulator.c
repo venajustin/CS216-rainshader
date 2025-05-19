@@ -42,12 +42,12 @@
 
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
-#define MAX_PARTICLES 30000
+#define MAX_PARTICLES 99999
 #define PARTICLE_SPAWN_RATE .01
 
-#define RAIN_BOUND_X 30
+#define RAIN_BOUND_X 50
 #define RAIN_BOUND_Y 500
-#define RAIN_BOUND_Z 30
+#define RAIN_BOUND_Z 50
 
 #define RAIN_STEP 0.05 // multipler to dT applied to rain animation
 
