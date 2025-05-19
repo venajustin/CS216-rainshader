@@ -268,11 +268,14 @@ int main(int argc, char** argv) {
     ///////////////////////////////////////////////////////////////////////////
     //                   LOAD RAIN TEXTURES
     ///////////////////////////////////////////////////////////////////////////
-    
+
+    SetTraceLogLevel(LOG_ERROR);
     // test
     TexTreeNode root = LoadRainTextures("resources/point_light_database/"); 
     
     UnloadRainTextures(root);
+
+    SetTraceLogLevel(LOG_ALL);
 
 
 
