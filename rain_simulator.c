@@ -49,7 +49,7 @@
 #define RAIN_BOUND_Y 500
 #define RAIN_BOUND_Z 30
 
-#define RAIN_STEP 0.5 // multipler to dT applied to rain animation
+#define RAIN_STEP 0.05 // multipler to dT applied to rain animation
 
 
 //----------------------------------------------------------------------------------
@@ -87,6 +87,8 @@ typedef struct {
 static int lightCount = 0; // Current number of dynamic lights that have been created
 static bool logging = false;
 bool toggle_rain = true;
+bool toggle_orbit = true;
+bool toggle_pause = false;
 
 int screenWidth = 1920;
 int screenHeight = 1080;
@@ -237,13 +239,6 @@ int main(int argc, char** argv) {
     Vector2 carTextureTiling = (Vector2){0.5f, 0.5f};
     Vector2 floorTextureTiling = (Vector2){0.5f, 0.5f};
 
-    // Create some lights
-    Light lights[MAX_LIGHTS] = {0};
-    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 4.0f,
-            shader);
-    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 3.3f, shader);
-    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 8.3f, shader);
-    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 2.0f, shader);
 
     // Setup material texture maps usage in shader
     // NOTE: By default, the texture maps are always used
@@ -309,12 +304,18 @@ int main(int argc, char** argv) {
     
     int camPositionLoc = GetShaderLocation(rainshader, "campos");
 
-    Texture2D raintexture = LoadTexture("resources/rain_cv20_combined.png");
+    Texture2D raintexture = LoadTexture("resources/cv20_v30_h-_osc3.png");
     matInstances.maps[MATERIAL_MAP_ALBEDO].texture = raintexture;
 
     printf("raintexture w: %d, h: %d\n", raintexture.width, raintexture.height);
      
-        
+    // Create some lights
+    Light lights[MAX_LIGHTS] = {0};
+    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 4.0f,
+            rainshader);
+    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 3.3f, rainshader);
+    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 8.3f, rainshader);
+    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 2.0f, rainshader);
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
                       //---------------------------------------------------------------------------------------
@@ -326,11 +327,18 @@ int main(int argc, char** argv) {
 
         double last_time = curr_time;
         curr_time = GetTime();
-        double dT = curr_time - last_time;
+        double dT;
+        if (toggle_pause) 
+            dT = 0;
+        else 
+            dT = curr_time - last_time;
 
 
         //----------------------------------------------------------------------------------
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        if (toggle_orbit)
+            UpdateCamera(&camera, CAMERA_ORBITAL);
+        else 
+            UpdateCamera(&camera, CAMERA_PERSPECTIVE);
 
         // Update the shader with the camera view vector (points towards { 0.0f, 0.0f, 0.0f })
         float cameraPos[3] = {camera.position.x, camera.position.y, camera.position.z};
@@ -350,6 +358,10 @@ int main(int argc, char** argv) {
         if (IsKeyPressed(KEY_THREE)) { lights[3].enabled = !lights[3].enabled; }
         if (IsKeyPressed(KEY_FOUR)) { lights[0].enabled = !lights[0].enabled; }
 
+        for (int i = 0; i < MAX_LIGHTS; i++) {
+            UpdateLight(rainshader, lights[i]);
+        }
+
 
         // toggle logging with l
         if (IsKeyPressed(KEY_L)) {
@@ -361,57 +373,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < MAX_LIGHTS; i++) UpdateLight(shader, lights[i]);
 
 
-        //---------------------------------------------------------------------
-        // Spawn raindrops
-        //---------------------------------------------------------------------
-
-//         if (raindrop_timer > PARTICLE_SPAWN_RATE && toggle_rain) {
-//             raindrop_timer = 0;
-// 
-//             int next_particle_loc = particle_count;
-//             if (particle_count >= MAX_PARTICLES) {
-//                 particle_count = MAX_PARTICLES;
-//                 // find oldest particle and replace
-//                 int oldest = 0;
-//                 for (int i = 0; i < particle_count; i++) {
-//                     if (particle_age[i] > oldest) {
-//                         oldest = particle_age[i];
-//                         next_particle_loc = i;
-//                     }
-//                 }
-//             }
-//             else {
-//                 particle_count++;
-//             }
-//             // assign position to particle
-//             particle_arr[next_particle_loc].p
-//                 = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
-// 
-//             Matrix translation = MatrixTranslate(particle_arr[next_particle_loc].p.x,
-//                     particle_arr[next_particle_loc].p.y,
-//                     particle_arr[next_particle_loc].p.z);
-//             Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-//             float angle = .5 * PI;
-//             Matrix rotation = MatrixRotate(axis, angle);
-//             transforms[next_particle_loc] = MatrixMultiply(rotation, translation);
-// 
-//             particle_arr[next_particle_loc].v
-//                 = (Vector3){0.0, 0.0, 0.0};
-// 
-//             particle_age[next_particle_loc] = 0;
-// 
-//             if (logging)
-//                 printf("Particle spawned at %f %f %f using slot %d\n",
-//                         particle_arr[next_particle_loc].p.x,
-//                         particle_arr[next_particle_loc].p.y,
-//                         particle_arr[next_particle_loc].p.z,
-//                         next_particle_loc
-//                       );
-//         }
-//         raindrop_timer += dT;
-//         for (int i = 0; i < particle_count; i++) {
-//             particle_age[i]++;
-//         }
 
         //---------------------------------------------------------------------
         // Animate Raindrops
@@ -427,65 +388,7 @@ int main(int argc, char** argv) {
         SetShaderValue(rainshader, rainOffsetLoc, &rainoffset, SHADER_UNIFORM_FLOAT);
 
 
-//         for (int i = 0; i < particle_count; i++) {
-//             // interpolation
-//             Particle* curr = &particle_arr[i];
-//             Vector3 vnew = curr->v;
-// 
-//             vnew.y = vnew.y + GRAVITY * dT;
-// 
-//             Vector3 vmid = curr->v;
-//             vmid.x = vmid.x + vnew.x / 2;
-//             vmid.y = vmid.y + vnew.y / 2;
-//             vmid.z = vmid.z + vnew.z / 2;
-// 
-//             curr->v = vnew;
-// 
-//             curr->p.x += vmid.x;
-//             curr->p.y += vmid.y;
-//             curr->p.z += vmid.z;
-// 
-//             // Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
-//             Matrix translation = MatrixTranslate(curr->p.x, curr->p.y, curr->p.z);
-// 
-//             // rotation to face camera
-//             Vector3 ogNormal = (Vector3){ 0.0, 0.0, 1.0 }; // norm of all obj
-//             Vector3 camPos = camera.position;
-// 
-//             Vector3 d = Vector3Subtract(camPos , curr->p);
-//             d = Vector3Normalize(d);
-//             float cosTheta = Vector3DotProduct(ogNormal, d);
-//             Vector3 axis = Vector3Normalize(Vector3CrossProduct(ogNormal, d));
-//             if (cosTheta < -0.9999) {
-//                 axis = (Vector3) { 1.0, 0.0, 0.0 }; // an orthogonal vec to ogNormal
-//             }
-// 
-//             // rotation matrix from axis angle
-//             float s = sqrt(1.0 - cosTheta * cosTheta);
-//             float t = 1.0 - cosTheta;
-// 
-//             float x = axis.x;
-//             float y = axis.y;
-//             float z = axis.z;
-// 
-//             Matrix rotation = MatrixInvert(MatrixLookAt(curr->p, camPos, (Vector3){0.0,1.0,0.0}));
-// 
-// 
-//             Vector3 a = (Vector3){ 1.0, 0.0, 0.0 };
-//             float angle = -1 * .5 * PI;
-//             Matrix baseRotation = MatrixRotate(a, angle);
-//             rotation = MatrixMultiply(baseRotation, rotation);
-// 
-//             transforms[i] = MatrixMultiply(rotation, translation);
-//         }
-
-
-        //        for (int i = 0; i < 10; i++ ) {
-        //            printf("pos: %f %f %f\n", particle_arr[i].x, particle_arr[i].y, particle_arr[i].z);
-        //        }
-
         //----------------------------------------------------------------------------------
-
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
@@ -529,9 +432,9 @@ int main(int argc, char** argv) {
         //     DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
         // }
 
-//        BeginBlendMode(BLEND_ADDITIVE);
+        BeginBlendMode(BLEND_ADDITIVE);
         DrawMeshInstanced(rdropmesh, matInstances, transforms, MAX_PARTICLES);
- //       EndBlendMode();
+        EndBlendMode();
 
         if (logging) {
             DrawSphere(camera.position, .5, RED);
@@ -543,9 +446,14 @@ int main(int argc, char** argv) {
         // GuiLabel((Rectangle){ 10 pw, 40 ph, 90 pw, 24 ph }, "Toggle Rain:");
         // GuiToggle((Rectangle){90 pw, 40 ph, 60 pw, 24 ph }, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
 
-        GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Toggle Rain:");
-        GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
+//          GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Toggle Rain:");
+//          GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
 
+        GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Camera Orbit:");
+        GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_orbit) ? "enabled" : "disabled"), &toggle_orbit);
+
+        GuiLabel((Rectangle){1 pw, 25 ph, 5 pw, 3 ph}, "Pause Time:");
+        GuiToggle((Rectangle){6 pw, 25 ph, 5 pw, 3 ph}, ((toggle_pause) ? "enabled" : "disabled"), &toggle_pause);
 
         // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
 
