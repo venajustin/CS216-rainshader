@@ -51,7 +51,7 @@ void main()
     vec4 texelColor = texture2D(texture0, newTexCoord) * ambient;
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
-    vec3 viewD = normalize(viewPos - particalPos);
+    vec3 viewD = normalize(viewPos - fragPosition);
     vec3 specular = vec3(0.0);
 
     vec4 tint = colDiffuse * fragColor;
@@ -73,7 +73,7 @@ void main()
     
                 if (lights[i].type == LIGHT_POINT)
                 {
-                    light = lights[i].position - particalPos;
+                    light = lights[i].position - fragPosition;
                     distance = length(light);
                     light = normalize(light);
                 }
@@ -83,7 +83,7 @@ void main()
                 intensity *= lights[i].intensity;
 
                 // angle between the camera and light on the xz plane
-                float camToLight = acos(dot(vec2(light.xz), vec2(viewD.xz)));
+                float camToLight = acos(dot(normalize(vec2(light.xz)), normalize(vec2(viewD.xz))));
 
 
                 int section = int(camToLight / 2.0 /3.1415962 * 9.0);
