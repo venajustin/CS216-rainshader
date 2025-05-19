@@ -13,9 +13,12 @@
  *
  *   Copyright (c) 2023-2025 Afan OLOVCIC (@_DevDad)
  *
- *   Model: "Old Rusty Car" (https://skfb.ly/LxRy) by Renafox, 
+ *   Model: "Toyota Landcruiser" (https://skfb.ly/MyHv) by Renafox,
  *   licensed under Creative Commons Attribution-NonCommercial 
  *   (http://creativecommons.org/licenses/by-nc/4.0/)
+ *
+ *   Model: "City Building Set 1" (https://skfb.ly/LpSC) by Neberkenezer
+ *   licensed under Creative Commons Attribution
  *
  ********************************************************************************************/
 
@@ -42,13 +45,11 @@
 #define MAX_PARTICLES 30000
 #define PARTICLE_SPAWN_RATE .01
 
-#define GRAVITY -.098
-
 #define RAIN_BOUND_X 30
 #define RAIN_BOUND_Y 500
 #define RAIN_BOUND_Z 30
 
-#define RAIN_STEP 0.0005 // multipler to dT applied to rain animation
+#define RAIN_STEP 0.5 // multipler to dT applied to rain animation
 
 
 //----------------------------------------------------------------------------------
@@ -142,7 +143,7 @@ int main(int argc, char** argv) {
 
     // Define the camera to look into our 3d world
     Camera camera = {0};
-    camera.position = (Vector3){3.0f, 3.0f, 5.0f}; // Camera position
+    camera.position = (Vector3){15.0f, 10.0f, 10.0f}; // Camera position
     camera.target = (Vector3){0.0f, 0.5f, 0.0f}; // Camera looking at point
     camera.up = (Vector3){0.0f, 1.0f, 0.0f}; // Camera up vector (rotation towards target)
     camera.fovy = 45.0f; // Camera field-of-view Y
@@ -185,36 +186,39 @@ int main(int argc, char** argv) {
 
 
 
-    // Load old car model using PBR maps and shader
-    // WARNING: We know this model consists of a single model.meshes[0] and
-    // that model.materials[0] is by default assigned to that mesh
-    // There could be more complex models consisting of multiple meshes and
-    // multiple materials defined for those meshes... but always 1 mesh = 1 material
-    Model car = LoadModel("resources/models/old_car_new.glb");
+      Model car = LoadModel("resources/toyota_land_cruiser/scene.gltf");
+      car.materials[0].shader = shader;
 
-    // Assign already setup PBR shader to model.materials[0], used by models.meshes[0]
-    car.materials[0].shader = shader;
+//      Model car = LoadModel("resources/models/toyota_land_cruiser.glb");
+//  
+//      // Assign already setup PBR shader to model.materials[0], used by models.meshes[0]
+//      car.materials[0].shader = shader;
+//  
+//      // Setup materials[0].maps default parameters
+//      car.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
+//      car.materials[0].maps[MATERIAL_MAP_METALNESS].value = 1.0f;
+//      car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 1.0f;
+//      car.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
+//      car.materials[0].maps[MATERIAL_MAP_EMISSION].color = (Color){255, 162, 0, 255};
+//  
+//      // Setup materials[0].maps default textures
+//      car.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/landcruiser_d.png");
+//      car.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/landcruiser_m.png");
+//      car.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/landcruiser_n.png");
+//      car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = LoadTexture("resources/landcruiser_r.png");
+//      car.materials[0].maps[MATERIAL_MAP_OCCLUSION].texture = LoadTexture("resources/landcruiser_ao.png");
+//      car.materials[0].maps[MATERIAL_MAP_EMISSION].texture = LoadTexture("resources/landcruiser_e.png");
+//  
 
-    // Setup materials[0].maps default parameters
-    car.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
-    car.materials[0].maps[MATERIAL_MAP_METALNESS].value = 0.0f;
-    car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 0.0f;
-    car.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
-    car.materials[0].maps[MATERIAL_MAP_EMISSION].color = (Color){255, 162, 0, 255};
 
-    // Setup materials[0].maps default textures
-    car.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/old_car_d.png");
-    car.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/old_car_mra.png");
-    car.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/old_car_n.png");
-    car.materials[0].maps[MATERIAL_MAP_EMISSION].texture = LoadTexture("resources/old_car_e.png");
+    // Model stoplight = LoadModel("resources/bus_stop__traffic_light/scene.gltf");
+    // stoplight.materials[0].shader = shader;
 
-    // Load floor model mesh and assign material parameters
-    // NOTE: A basic plane shape can be generated instead of being loaded from a model file
+    Model city = LoadModel("resources/ccity_building_set_1/scene.gltf");
+    city.materials[0].shader = shader;
+
+
     Model floor = LoadModel("resources/models/plane.glb");
-    //Mesh floorMesh = GenMeshPlane(10, 10, 10, 10);
-    //GenMeshTangents(&floorMesh);      // TODO: Review tangents generation
-    //Model floor = LoadModelFromMesh(floorMesh);
-
     // Assign material shader for our floor model, same PBR shader
     floor.materials[0].shader = shader;
 
@@ -495,16 +499,18 @@ int main(int argc, char** argv) {
         Vector4 floorEmissiveColor = ColorNormalize(floor.materials[0].maps[MATERIAL_MAP_EMISSION].color);
         SetShaderValue(shader, emissiveColorLoc, &floorEmissiveColor, SHADER_UNIFORM_VEC4);
 
-        DrawModel(floor, (Vector3){0.0f, 0.0f, 0.0f}, 5.0f, WHITE); // Draw floor model
+       //  DrawModel(floor, (Vector3){0.0f, 0.0f, 0.0f}, 5.0f, WHITE); // Draw floor model
 
-        // Set old car model texture tiling, emissive color and emissive intensity parameters on shader
         SetShaderValue(shader, textureTilingLoc, &carTextureTiling, SHADER_UNIFORM_VEC2);
         Vector4 carEmissiveColor = ColorNormalize(car.materials[0].maps[MATERIAL_MAP_EMISSION].color);
         SetShaderValue(shader, emissiveColorLoc, &carEmissiveColor, SHADER_UNIFORM_VEC4);
         float emissiveIntensity = .1f;
         SetShaderValue(shader, emissiveIntensityLoc, &emissiveIntensity, SHADER_UNIFORM_FLOAT);
 
-        DrawModel(car, (Vector3){0.0f, 0.0f, 0.0f}, 0.25f, WHITE); // Draw car model
+        DrawModel(car, (Vector3){0.0f, -0.1f, -10.0f}, 0.05, WHITE); // Draw car model
+        // DrawModel(stoplight, (Vector3){-0.0f, 0.0f, -4.0f}, 10.0f, WHITE); // Draw bus stop
+
+        DrawModel(city, (Vector3){75.0f, 0.0f, 75.0f}, .01, WHITE);
 
         // Draw spheres to show the lights positions
         for (int i = 0; i < MAX_LIGHTS; i++) {
@@ -543,7 +549,7 @@ int main(int argc, char** argv) {
 
         // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
 
-        // DrawText("(c) Old Rusty Car model by Renafox (https://skfb.ly/LxRy)", screenWidth - 320, screenHeight - 20, 10, LIGHTGRAY);
+        DrawText("(c) Toyota Landcruiser model by Renafox (https://skfb.ly/MyHv)", screenWidth - 380, screenHeight - 20, 10, LIGHTGRAY);
 
         DrawFPS(10, 10);
 
@@ -559,6 +565,11 @@ int main(int argc, char** argv) {
     UnloadMaterial(car.materials[0]);
     car.materials[0].maps = NULL;
     UnloadModel(car);
+
+    city.materials[0].shader = (Shader){0};
+    UnloadMaterial(city.materials[0]);
+    city.materials[0].maps = NULL;
+    UnloadModel(city);
 
     floor.materials[0].shader = (Shader){0};
     UnloadMaterial(floor.materials[0]);
