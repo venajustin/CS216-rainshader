@@ -19,6 +19,7 @@ varying vec3 fragPosition;
 varying vec2 fragTexCoord;
 varying vec4 fragColor;
 varying vec3 fragNormal;
+varying vec3 particalPos;
 
 
 // Rain offset, used to animate rain position
@@ -29,6 +30,7 @@ uniform vec3 campos;
 
 void main()
 {
+    particalPos = (instanceTransform * vec4(1.0)).xyz;
     vec4 position = vec4(vertexPosition, 1.0);
 
     // interp accross (-travelheight, travelheight) without division

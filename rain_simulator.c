@@ -155,14 +155,8 @@ int main(int argc, char** argv) {
     Shader shader = LoadShader(TextFormat("shaders/pbr.vs", GLSL_VERSION),
             TextFormat("shaders/pbr.fs", GLSL_VERSION));
     shader.locs[SHADER_LOC_MAP_ALBEDO] = GetShaderLocation(shader, "albedoMap");
-    // WARNING: Metalness, roughness, and ambient occlusion are all packed into a MRA texture
-    // They are passed as to the SHADER_LOC_MAP_METALNESS location for convenience,
-    // shader already takes care of it accordingly
     shader.locs[SHADER_LOC_MAP_METALNESS] = GetShaderLocation(shader, "mraMap");
     shader.locs[SHADER_LOC_MAP_NORMAL] = GetShaderLocation(shader, "normalMap");
-    // WARNING: Similar to the MRA map, the emissive map packs different information
-    // into a single texture: it stores height and emission data
-    // It is binded to SHADER_LOC_MAP_EMISSION location an properly processed on shader
     shader.locs[SHADER_LOC_MAP_EMISSION] = GetShaderLocation(shader, "emissiveMap");
     shader.locs[SHADER_LOC_COLOR_DIFFUSE] = GetShaderLocation(shader, "albedoColor");
 
@@ -189,7 +183,12 @@ int main(int argc, char** argv) {
 
 
       Model car = LoadModel("resources/toyota_land_cruiser/scene.gltf");
-      car.materials[0].shader = shader;
+//       for (int i = 0; i < car.materialCount; i++) {
+//           car.materials[i].shader = shader;
+// 
+// 
+//       }
+
 
 //      Model car = LoadModel("resources/models/toyota_land_cruiser.glb");
 //  
@@ -311,11 +310,11 @@ int main(int argc, char** argv) {
      
     // Create some lights
     Light lights[MAX_LIGHTS] = {0};
-    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 4.0f,
+    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 40.0f,
             rainshader);
-    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 3.3f, rainshader);
-    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 15.3f, rainshader);
-    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 2.0f, rainshader);
+    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 30.3f, rainshader);
+    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 150.3f, rainshader);
+    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 20.0f, rainshader);
 
     SetTargetFPS(60); // Set our game to run at 60 frames-per-second
                       //---------------------------------------------------------------------------------------
@@ -407,7 +406,7 @@ int main(int argc, char** argv) {
         SetShaderValue(shader, textureTilingLoc, &carTextureTiling, SHADER_UNIFORM_VEC2);
         Vector4 carEmissiveColor = ColorNormalize(car.materials[0].maps[MATERIAL_MAP_EMISSION].color);
         SetShaderValue(shader, emissiveColorLoc, &carEmissiveColor, SHADER_UNIFORM_VEC4);
-        float emissiveIntensity = .1f;
+        float emissiveIntensity = .01f;
         SetShaderValue(shader, emissiveIntensityLoc, &emissiveIntensity, SHADER_UNIFORM_FLOAT);
 
         DrawModel(car, (Vector3){0.0f, -0.1f, -10.0f}, 0.05, WHITE); // Draw car model

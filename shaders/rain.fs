@@ -8,6 +8,7 @@ varying vec3 fragPosition;
 varying vec2 fragTexCoord;
 varying vec4 fragColor;
 varying vec3 fragNormal;
+varying vec3 particalPos;
 
 // Input uniform values
 uniform sampler2D texture0;
@@ -25,6 +26,7 @@ struct Light {
     vec3 position;
     vec3 target;
     vec4 color;
+    float intensity; 
 };
 
 // Input lighting values
@@ -49,7 +51,7 @@ void main()
     vec4 texelColor = texture2D(texture0, newTexCoord) * ambient;
     vec3 lightDot = vec3(0.0);
     vec3 normal = normalize(fragNormal);
-    vec3 viewD = normalize(viewPos - fragPosition);
+    vec3 viewD = normalize(viewPos - particalPos);
     vec3 specular = vec3(0.0);
 
     vec4 tint = colDiffuse * fragColor;
@@ -71,14 +73,14 @@ void main()
     
                 if (lights[i].type == LIGHT_POINT)
                 {
-                    light = lights[i].position - fragPosition;
+                    light = lights[i].position - particalPos;
                     distance = length(light);
                     light = normalize(light);
                 }
 
             
-                float intensity = 1.0  / (distance * distance);
-                intensity *= 20.0;
+                float intensity = 5.0  / (distance * distance);
+                intensity *= lights[i].intensity;
 
                 // angle between the camera and light on the xz plane
                 float camToLight = acos(dot(vec2(light.xz), vec2(viewD.xz)));
