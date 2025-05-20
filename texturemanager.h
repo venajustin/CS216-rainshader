@@ -1,3 +1,17 @@
+/*
+ * TextureManager
+ * Author: Justin Greatorex
+ *  
+ * Not used in final implementation.
+ *
+ * Reads in rain streak textures from the rain streak database.
+ * (cave.cs.columbia.edu/repository/Rain)
+ *
+ * Organizes textures into an accessible datastructure and attempts
+ * to combine them into a single texture for use in fragment shader
+ *
+ */
+
 #ifndef TEXTUREMANAGER_H
 #define TEXTUREMANAGER_H
 
