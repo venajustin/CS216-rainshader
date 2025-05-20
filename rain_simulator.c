@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
     double raindrop_timer = 0;
 
 
-    double curr_time;
+    double curr_time = 0;
 
 
     // Define mesh to be instanced
