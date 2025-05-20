@@ -1,18 +1,14 @@
 /*******************************************************************************************
+ *  CS216 - RainShader
  *
+ *  Justin Greatorex
+ *  May 19th 2025
+ *
+ *  Strated from:
  *   raylib [shaders] example - Basic PBR
- *
- *   Example complexity rating: [★★★★] 4/4
- *
- *   Example originally created with raylib 5.0, last time updated with raylib 5.1-dev
- *
- *   Example contributed by Afan OLOVCIC (@_DevDad) and reviewed by Ramon Santamaria (@raysan5)
- *
- *   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
- *   BSD-like license that allows static linking with closed source software
- *
  *   Copyright (c) 2023-2025 Afan OLOVCIC (@_DevDad)
  *
+ *  Assets attribution:
  *   Model: "Toyota Landcruiser" (https://skfb.ly/MyHv) by Renafox,
  *   licensed under Creative Commons Attribution-NonCommercial 
  *   (http://creativecommons.org/licenses/by-nc/4.0/)
@@ -43,7 +39,6 @@
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
 #define MAX_PARTICLES 99999
-#define PARTICLE_SPAWN_RATE .01
 
 #define RAIN_BOUND_X 50
 #define RAIN_BOUND_Y 500
@@ -190,53 +185,13 @@ int main(int argc, char** argv) {
 //       }
 
 
-//      Model car = LoadModel("resources/models/toyota_land_cruiser.glb");
-//  
-//      // Assign already setup PBR shader to model.materials[0], used by models.meshes[0]
-//      car.materials[0].shader = shader;
-//  
-//      // Setup materials[0].maps default parameters
-//      car.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
-//      car.materials[0].maps[MATERIAL_MAP_METALNESS].value = 1.0f;
-//      car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 1.0f;
-//      car.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
-//      car.materials[0].maps[MATERIAL_MAP_EMISSION].color = (Color){255, 162, 0, 255};
-//  
-//      // Setup materials[0].maps default textures
-//      car.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/landcruiser_d.png");
-//      car.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/landcruiser_m.png");
-//      car.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/landcruiser_n.png");
-//      car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = LoadTexture("resources/landcruiser_r.png");
-//      car.materials[0].maps[MATERIAL_MAP_OCCLUSION].texture = LoadTexture("resources/landcruiser_ao.png");
-//      car.materials[0].maps[MATERIAL_MAP_EMISSION].texture = LoadTexture("resources/landcruiser_e.png");
-//  
 
-
-    // Model stoplight = LoadModel("resources/bus_stop__traffic_light/scene.gltf");
-    // stoplight.materials[0].shader = shader;
 
     Model city = LoadModel("resources/ccity_building_set_1/scene.gltf");
     city.materials[0].shader = shader;
 
 
-    Model floor = LoadModel("resources/models/plane.glb");
-    // Assign material shader for our floor model, same PBR shader
-    floor.materials[0].shader = shader;
-
-    floor.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
-    floor.materials[0].maps[MATERIAL_MAP_METALNESS].value = 0.0f;
-    floor.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 0.0f;
-    floor.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
-    floor.materials[0].maps[MATERIAL_MAP_EMISSION].color = BLACK;
-
-    floor.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/road_a.png");
-    floor.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/road_mra.png");
-    floor.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/road_n.png");
-
-    // Models texture tiling parameter can be stored in the Material struct if required (CURRENTLY NOT USED)
-    // NOTE: Material.params[4] are available for generic parameters storage (float)
     Vector2 carTextureTiling = (Vector2){0.5f, 0.5f};
-    Vector2 floorTextureTiling = (Vector2){0.5f, 0.5f};
 
 
     // Setup material texture maps usage in shader
@@ -265,6 +220,7 @@ int main(int argc, char** argv) {
     Matrix *transforms = (Matrix *)RL_CALLOC(MAX_PARTICLES, sizeof(Matrix));   // Pre-multiplied transformations passed to rlgl
 
     // Translate and rotate planes randomly
+    // These starting positions will be used with the rain_offset to instantiate planes
     for (int i = 0; i < MAX_PARTICLES; i++)
     {
         Matrix translation = MatrixTranslate(
@@ -396,12 +352,6 @@ int main(int argc, char** argv) {
 
         BeginMode3D(camera);
 
-        // Set floor model texture tiling and emissive color parameters on shader
-        SetShaderValue(shader, textureTilingLoc, &floorTextureTiling, SHADER_UNIFORM_VEC2);
-        Vector4 floorEmissiveColor = ColorNormalize(floor.materials[0].maps[MATERIAL_MAP_EMISSION].color);
-        SetShaderValue(shader, emissiveColorLoc, &floorEmissiveColor, SHADER_UNIFORM_VEC4);
-
-       //  DrawModel(floor, (Vector3){0.0f, 0.0f, 0.0f}, 5.0f, WHITE); // Draw floor model
 
         SetShaderValue(shader, textureTilingLoc, &carTextureTiling, SHADER_UNIFORM_VEC2);
         Vector4 carEmissiveColor = ColorNormalize(car.materials[0].maps[MATERIAL_MAP_EMISSION].color);
@@ -442,19 +392,13 @@ int main(int argc, char** argv) {
 
         EndMode3D();
 
-        // GuiLabel((Rectangle){ 10 pw, 40 ph, 90 pw, 24 ph }, "Toggle Rain:");
-        // GuiToggle((Rectangle){90 pw, 40 ph, 60 pw, 24 ph }, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
-
-//          GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Toggle Rain:");
-//          GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
-
         GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Camera Orbit:");
         GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_orbit) ? "enabled" : "disabled"), &toggle_orbit);
 
         GuiLabel((Rectangle){1 pw, 25 ph, 5 pw, 3 ph}, "Pause Time:");
         GuiToggle((Rectangle){6 pw, 25 ph, 5 pw, 3 ph}, ((toggle_pause) ? "enabled" : "disabled"), &toggle_pause);
 
-        // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
+         DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
 
         DrawText("(c) Toyota Landcruiser model by Renafox (https://skfb.ly/MyHv)", screenWidth - 380, screenHeight - 20, 10, LIGHTGRAY);
 
@@ -478,11 +422,6 @@ int main(int argc, char** argv) {
     city.materials[0].maps = NULL;
     UnloadModel(city);
 
-    floor.materials[0].shader = (Shader){0};
-    UnloadMaterial(floor.materials[0]);
-    floor.materials[0].maps = NULL;
-    UnloadModel(floor);
-
     UnloadShader(shader); // Unload Shader
 
     CloseWindow(); // Close window and OpenGL context
@@ -492,7 +431,7 @@ int main(int argc, char** argv) {
 }
 
 // Create light with provided data
-// NOTE: It updated the global lightCount and it's limited to MAX_LIGHTS
+// NOTE: It updates the global lightCount and it's limited to MAX_LIGHTS
 static Light CreateLight(int type, Vector3 position, Vector3 target, Color color, float intensity, Shader shader) {
     Light light = {0};
 
