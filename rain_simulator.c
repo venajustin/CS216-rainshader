@@ -1,23 +1,22 @@
 /*******************************************************************************************
-*
-*   raylib [shaders] example - Basic PBR
-*
-*   Example complexity rating: [★★★★] 4/4
-*
-*   Example originally created with raylib 5.0, last time updated with raylib 5.1-dev
-*
-*   Example contributed by Afan OLOVCIC (@_DevDad) and reviewed by Ramon Santamaria (@raysan5)
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2023-2025 Afan OLOVCIC (@_DevDad)
-*
-*   Model: "Old Rusty Car" (https://skfb.ly/LxRy) by Renafox, 
-*   licensed under Creative Commons Attribution-NonCommercial 
-*   (http://creativecommons.org/licenses/by-nc/4.0/)
-*
-********************************************************************************************/
+ *  CS216 - RainShader
+ *
+ *  Justin Greatorex
+ *  May 19th 2025
+ *
+ *  Strated from:
+ *   raylib [shaders] example - Basic PBR
+ *   Copyright (c) 2023-2025 Afan OLOVCIC (@_DevDad)
+ *
+ *  Assets attribution:
+ *   Model: "Toyota Landcruiser" (https://skfb.ly/MyHv) by Renafox,
+ *   licensed under Creative Commons Attribution-NonCommercial 
+ *   (http://creativecommons.org/licenses/by-nc/4.0/)
+ *
+ *   Model: "City Building Set 1" (https://skfb.ly/LpSC) by Neberkenezer
+ *   licensed under Creative Commons Attribution
+ *
+ ********************************************************************************************/
 
 #include "raylib.h"
 #include <raymath.h>
@@ -25,7 +24,7 @@
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION            330
 #else   // PLATFORM_ANDROID, PLATFORM_WEB
-    #define GLSL_VERSION            100
+#define GLSL_VERSION            100
 #endif
 
 #include <stdlib.h>             // Required for: NULL
@@ -39,10 +38,14 @@
 
 #define MAX_LIGHTS  4           // Max dynamic lights supported by shader
 
-#define MAX_PARTICLES 150
-#define PARTICLE_SPAWN_RATE .01
+#define MAX_PARTICLES 99999
 
-#define GRAVITY -.098
+#define RAIN_BOUND_X 50
+#define RAIN_BOUND_Y 500
+#define RAIN_BOUND_Z 50
+
+#define RAIN_STEP 0.05 // multipler to dT applied to rain animation
+
 
 //----------------------------------------------------------------------------------
 // Types and Structures Definition
@@ -79,6 +82,8 @@ typedef struct {
 static int lightCount = 0; // Current number of dynamic lights that have been created
 static bool logging = false;
 bool toggle_rain = true;
+bool toggle_orbit = true;
+bool toggle_pause = false;
 
 int screenWidth = 1920;
 int screenHeight = 1080;
@@ -135,7 +140,7 @@ int main(int argc, char** argv) {
 
     // Define the camera to look into our 3d world
     Camera camera = {0};
-    camera.position = (Vector3){2.0f, 2.0f, 6.0f}; // Camera position
+    camera.position = (Vector3){15.0f, 10.0f, 10.0f}; // Camera position
     camera.target = (Vector3){0.0f, 0.5f, 0.0f}; // Camera looking at point
     camera.up = (Vector3){0.0f, 1.0f, 0.0f}; // Camera up vector (rotation towards target)
     camera.fovy = 45.0f; // Camera field-of-view Y
@@ -143,16 +148,10 @@ int main(int argc, char** argv) {
 
     // Load PBR shader and setup all required locations
     Shader shader = LoadShader(TextFormat("shaders/pbr.vs", GLSL_VERSION),
-                               TextFormat("shaders/pbr.fs", GLSL_VERSION));
+            TextFormat("shaders/pbr.fs", GLSL_VERSION));
     shader.locs[SHADER_LOC_MAP_ALBEDO] = GetShaderLocation(shader, "albedoMap");
-    // WARNING: Metalness, roughness, and ambient occlusion are all packed into a MRA texture
-    // They are passed as to the SHADER_LOC_MAP_METALNESS location for convenience,
-    // shader already takes care of it accordingly
     shader.locs[SHADER_LOC_MAP_METALNESS] = GetShaderLocation(shader, "mraMap");
     shader.locs[SHADER_LOC_MAP_NORMAL] = GetShaderLocation(shader, "normalMap");
-    // WARNING: Similar to the MRA map, the emissive map packs different information
-    // into a single texture: it stores height and emission data
-    // It is binded to SHADER_LOC_MAP_EMISSION location an properly processed on shader
     shader.locs[SHADER_LOC_MAP_EMISSION] = GetShaderLocation(shader, "emissiveMap");
     shader.locs[SHADER_LOC_COLOR_DIFFUSE] = GetShaderLocation(shader, "albedoColor");
 
@@ -177,65 +176,23 @@ int main(int argc, char** argv) {
     int textureTilingLoc = GetShaderLocation(shader, "tiling");
 
 
-    // TODO: load custom shader and set values
-    // TODO: load / create custom model if needed for raindrop
+
+      Model car = LoadModel("resources/toyota_land_cruiser/scene.gltf");
+//       for (int i = 0; i < car.materialCount; i++) {
+//           car.materials[i].shader = shader;
+// 
+// 
+//       }
 
 
-    // Load old car model using PBR maps and shader
-    // WARNING: We know this model consists of a single model.meshes[0] and
-    // that model.materials[0] is by default assigned to that mesh
-    // There could be more complex models consisting of multiple meshes and
-    // multiple materials defined for those meshes... but always 1 mesh = 1 material
-    Model car = LoadModel("resources/models/old_car_new.glb");
 
-    // Assign already setup PBR shader to model.materials[0], used by models.meshes[0]
-    car.materials[0].shader = shader;
 
-    // Setup materials[0].maps default parameters
-    car.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
-    car.materials[0].maps[MATERIAL_MAP_METALNESS].value = 0.0f;
-    car.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 0.0f;
-    car.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
-    car.materials[0].maps[MATERIAL_MAP_EMISSION].color = (Color){255, 162, 0, 255};
+    Model city = LoadModel("resources/ccity_building_set_1/scene.gltf");
+    city.materials[0].shader = shader;
 
-    // Setup materials[0].maps default textures
-    car.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/old_car_d.png");
-    car.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/old_car_mra.png");
-    car.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/old_car_n.png");
-    car.materials[0].maps[MATERIAL_MAP_EMISSION].texture = LoadTexture("resources/old_car_e.png");
 
-    // Load floor model mesh and assign material parameters
-    // NOTE: A basic plane shape can be generated instead of being loaded from a model file
-    Model floor = LoadModel("resources/models/plane.glb");
-    //Mesh floorMesh = GenMeshPlane(10, 10, 10, 10);
-    //GenMeshTangents(&floorMesh);      // TODO: Review tangents generation
-    //Model floor = LoadModelFromMesh(floorMesh);
-
-    // Assign material shader for our floor model, same PBR shader
-    floor.materials[0].shader = shader;
-
-    floor.materials[0].maps[MATERIAL_MAP_ALBEDO].color = WHITE;
-    floor.materials[0].maps[MATERIAL_MAP_METALNESS].value = 0.0f;
-    floor.materials[0].maps[MATERIAL_MAP_ROUGHNESS].value = 0.0f;
-    floor.materials[0].maps[MATERIAL_MAP_OCCLUSION].value = 1.0f;
-    floor.materials[0].maps[MATERIAL_MAP_EMISSION].color = BLACK;
-
-    floor.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = LoadTexture("resources/road_a.png");
-    floor.materials[0].maps[MATERIAL_MAP_METALNESS].texture = LoadTexture("resources/road_mra.png");
-    floor.materials[0].maps[MATERIAL_MAP_NORMAL].texture = LoadTexture("resources/road_n.png");
-
-    // Models texture tiling parameter can be stored in the Material struct if required (CURRENTLY NOT USED)
-    // NOTE: Material.params[4] are available for generic parameters storage (float)
     Vector2 carTextureTiling = (Vector2){0.5f, 0.5f};
-    Vector2 floorTextureTiling = (Vector2){0.5f, 0.5f};
 
-    // Create some lights
-    Light lights[MAX_LIGHTS] = {0};
-    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 4.0f,
-                            shader);
-    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 3.3f, shader);
-    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 8.3f, shader);
-    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 2.0f, shader);
 
     // Setup material texture maps usage in shader
     // NOTE: By default, the texture maps are always used
@@ -256,59 +213,87 @@ int main(int argc, char** argv) {
 
 
     // Define mesh to be instanced
-     // Mesh rdropmesh = GenMeshCube(1.0, 1.0, 1.0);
+    // Mesh rdropmesh = GenMeshCube(0.5, 0.5, 0.5);
      Mesh rdropmesh = GenMeshPlane(1.0f, 1.0f, 2, 2);
 
     // Define transforms to be uploaded to GPU for instances
     Matrix *transforms = (Matrix *)RL_CALLOC(MAX_PARTICLES, sizeof(Matrix));   // Pre-multiplied transformations passed to rlgl
 
     // Translate and rotate planes randomly
+    // These starting positions will be used with the rain_offset to instantiate planes
     for (int i = 0; i < MAX_PARTICLES; i++)
     {
-        Matrix translation = MatrixTranslate((float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10), (float)GetRandomValue(-10, 10));
+        Matrix translation = MatrixTranslate(
+                (float)GetRandomValue(- RAIN_BOUND_X / 2.0, RAIN_BOUND_X / 2.0),
+                (float)GetRandomValue(- RAIN_BOUND_Y / 2.0, RAIN_BOUND_Y / 2.0),
+                (float)GetRandomValue(- RAIN_BOUND_Z / 2.0, RAIN_BOUND_Z / 2.0));
 
-        Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-        float angle = .5 * PI;
 
-//        Vector3 axis = Vector3Normalize((Vector3){ (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360), (float)GetRandomValue(0, 360) });
-//        float angle = (float)GetRandomValue(0, 180)*DEG2RAD;
- 
-        Matrix rotation = MatrixRotate(axis, angle);
-
-        transforms[i] = MatrixMultiply(rotation, translation);
+        transforms[i] = translation;
+        // transforms[i] = MatrixMultiply(rotation, translation);
     }
 
     // Load lighting shader
     Shader rainshader = LoadShader(TextFormat("shaders/rain.vs", GLSL_VERSION),
-                               TextFormat("shaders/rain.fs", GLSL_VERSION));
+            TextFormat("shaders/rain.fs", GLSL_VERSION));
 
     // Get shader locations
     rainshader.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(rainshader, "mvp");
     rainshader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(rainshader, "viewPos");
 
     int ambientLoc = GetShaderLocation(rainshader, "ambient");
-    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.2f, 0.2f, 0.2f, 1.0f }, SHADER_UNIFORM_VEC4);
+    SetShaderValue(rainshader, ambientLoc, (float[4]){ 0.01f, 0.01f, 0.01f, 1.0f }, SHADER_UNIFORM_VEC4);
 
 
     Material matInstances = LoadMaterialDefault();
     matInstances.shader = rainshader;
     matInstances.maps[MATERIAL_MAP_DIFFUSE].color = RED;
 
-    SetTargetFPS(60); // Set our game to run at 60 frames-per-second
-    //---------------------------------------------------------------------------------------
+    int rainOffsetLoc = GetShaderLocation(rainshader, "rainoffset");
+    float rainoffset = 0.0;
+    SetShaderValue(rainshader, rainOffsetLoc, &rainoffset, SHADER_UNIFORM_FLOAT);
+    
+    int travelHeightLoc = GetShaderLocation(rainshader, "travelheight");
+    float travelHeight = RAIN_BOUND_Y / 2.0;
+    SetShaderValue(rainshader, travelHeightLoc, &travelHeight, SHADER_UNIFORM_FLOAT);
+    
+    int camPositionLoc = GetShaderLocation(rainshader, "campos");
 
-    // Main game loop
+    Texture2D raintexture = LoadTexture("resources/cv20_v30_h-_osc3.png");
+    matInstances.maps[MATERIAL_MAP_ALBEDO].texture = raintexture;
+
+    printf("raintexture w: %d, h: %d\n", raintexture.width, raintexture.height);
+     
+    // Create some lights
+    Light lights[MAX_LIGHTS] = {0};
+    lights[0] = CreateLight(LIGHT_POINT, (Vector3){-1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, YELLOW, 40.0f,
+            rainshader);
+    lights[1] = CreateLight(LIGHT_POINT, (Vector3){2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, GREEN, 30.3f, rainshader);
+    lights[2] = CreateLight(LIGHT_POINT, (Vector3){-2.0f, 1.0f, 1.0f}, (Vector3){0.0f, 0.0f, 0.0f}, RED, 150.3f, rainshader);
+    lights[3] = CreateLight(LIGHT_POINT, (Vector3){1.0f, 1.0f, -2.0f}, (Vector3){0.0f, 0.0f, 0.0f}, BLUE, 20.0f, rainshader);
+
+    SetTargetFPS(60); // Set our game to run at 60 frames-per-second
+                      //---------------------------------------------------------------------------------------
+
+                      // Main game loop
     while (!WindowShouldClose()) // Detect window close button or ESC key
     {
         // Update
 
         double last_time = curr_time;
         curr_time = GetTime();
-        double dT = curr_time - last_time;
+        double dT;
+        if (toggle_pause) 
+            dT = 0;
+        else 
+            dT = curr_time - last_time;
 
 
         //----------------------------------------------------------------------------------
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        if (toggle_orbit)
+            UpdateCamera(&camera, CAMERA_ORBITAL);
+        else 
+            UpdateCamera(&camera, CAMERA_PERSPECTIVE);
 
         // Update the shader with the camera view vector (points towards { 0.0f, 0.0f, 0.0f })
         float cameraPos[3] = {camera.position.x, camera.position.y, camera.position.z};
@@ -316,11 +301,21 @@ int main(int argc, char** argv) {
         SetShaderValue(rainshader, rainshader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
 
+        // this is basically a repeat of above but I don't know if it will mess with
+        // the frag shader to have the same name in both
+        SetShaderValue(rainshader, camPositionLoc, cameraPos, SHADER_UNIFORM_VEC3);
+
+
+
         // Check key inputs to enable/disable lights
         if (IsKeyPressed(KEY_ONE)) { lights[2].enabled = !lights[2].enabled; }
         if (IsKeyPressed(KEY_TWO)) { lights[1].enabled = !lights[1].enabled; }
         if (IsKeyPressed(KEY_THREE)) { lights[3].enabled = !lights[3].enabled; }
         if (IsKeyPressed(KEY_FOUR)) { lights[0].enabled = !lights[0].enabled; }
+
+        for (int i = 0; i < MAX_LIGHTS; i++) {
+            UpdateLight(rainshader, lights[i]);
+        }
 
 
         // toggle logging with l
@@ -333,121 +328,22 @@ int main(int argc, char** argv) {
         for (int i = 0; i < MAX_LIGHTS; i++) UpdateLight(shader, lights[i]);
 
 
-        //---------------------------------------------------------------------
-        // Spawn raindrops
-        //---------------------------------------------------------------------
-
-        if (raindrop_timer > PARTICLE_SPAWN_RATE && toggle_rain) {
-            raindrop_timer = 0;
-
-            int next_particle_loc = particle_count;
-            if (particle_count >= MAX_PARTICLES) {
-                particle_count = MAX_PARTICLES;
-                // find oldest particle and replace
-                int oldest = 0;
-                for (int i = 0; i < particle_count; i++) {
-                    if (particle_age[i] > oldest) {
-                        oldest = particle_age[i];
-                        next_particle_loc = i;
-                    }
-                }
-            }
-            else {
-                particle_count++;
-            }
-            // assign position to particle
-            particle_arr[next_particle_loc].p
-                = randomPos((Vector3){-3.0, 3.0, -3.0}, (Vector3){3.0, 3.0, 3.0});
-        
-            Matrix translation = MatrixTranslate(particle_arr[next_particle_loc].p.x,
-                    particle_arr[next_particle_loc].p.y,
-                    particle_arr[next_particle_loc].p.z);
-            Vector3 axis = (Vector3){ 1.0, 0.0, 0.0 };
-            float angle = .5 * PI;
-            Matrix rotation = MatrixRotate(axis, angle);
-            transforms[next_particle_loc] = MatrixMultiply(rotation, translation);
-
-            particle_arr[next_particle_loc].v
-                = (Vector3){0.0, 0.0, 0.0};
-
-            particle_age[next_particle_loc] = 0;
-
-            if (logging)
-                printf("Particle spawned at %f %f %f using slot %d\n",
-                       particle_arr[next_particle_loc].p.x,
-                       particle_arr[next_particle_loc].p.y,
-                       particle_arr[next_particle_loc].p.z,
-                       next_particle_loc
-                );
-        }
-        raindrop_timer += dT;
-        for (int i = 0; i < particle_count; i++) {
-            particle_age[i]++;
-        }
 
         //---------------------------------------------------------------------
         // Animate Raindrops
         //---------------------------------------------------------------------
-
-        for (int i = 0; i < particle_count; i++) {
-            // interpolation
-            Particle* curr = &particle_arr[i];
-            Vector3 vnew = curr->v;
-
-            vnew.y = vnew.y + GRAVITY * dT;
-
-            Vector3 vmid = curr->v;
-            vmid.x = vmid.x + vnew.x / 2;
-            vmid.y = vmid.y + vnew.y / 2;
-            vmid.z = vmid.z + vnew.z / 2;
-
-            curr->v = vnew;
-
-            curr->p.x += vmid.x;
-            curr->p.y += vmid.y;
-            curr->p.z += vmid.z;
-
-            // Matrix translation = MatrixTranslate(vmid.x, vmid.y, vmid.z);
-            Matrix translation = MatrixTranslate(curr->p.x, curr->p.y, curr->p.z);
-
-            // rotation to face camera
-            Vector3 ogNormal = (Vector3){ 0.0, 0.0, 1.0 }; // norm of all obj
-            Vector3 camPos = camera.position;
-            
-            Vector3 d = Vector3Subtract(camPos , curr->p);
-            d = Vector3Normalize(d);
-            float cosTheta = Vector3DotProduct(ogNormal, d);
-            Vector3 axis = Vector3Normalize(Vector3CrossProduct(ogNormal, d));
-            if (cosTheta < -0.9999) {
-                axis = (Vector3) { 1.0, 0.0, 0.0 }; // an orthogonal vec to ogNormal
-            }
-
-            // rotation matrix from axis angle
-            float s = sqrt(1.0 - cosTheta * cosTheta);
-            float t = 1.0 - cosTheta;
-
-            float x = axis.x;
-            float y = axis.y;
-            float z = axis.z;
-
-            Matrix rotation = MatrixInvert(MatrixLookAt(curr->p, camPos, (Vector3){0.0,1.0,0.0}));
-
-
-             Vector3 a = (Vector3){ 1.0, 0.0, 0.0 };
-             float angle = -1 * .5 * PI;
-             Matrix baseRotation = MatrixRotate(a, angle);
-             rotation = MatrixMultiply(baseRotation, rotation);
-        
-             transforms[i] = MatrixMultiply(rotation, translation);
+       
+        rainoffset = rainoffset - (dT * RAIN_STEP);
+        if (rainoffset < 0.6) { // Hacky workaround, should be < 0, but weird translations are happening < .6
+            rainoffset = 1;
         }
+        if (logging) {
+            printf("rainoffset: %f\n", rainoffset);
+        }
+        SetShaderValue(rainshader, rainOffsetLoc, &rainoffset, SHADER_UNIFORM_FLOAT);
 
-
-        //        for (int i = 0; i < 10; i++ ) {
-        //            printf("pos: %f %f %f\n", particle_arr[i].x, particle_arr[i].y, particle_arr[i].z);
-        //        }
 
         //----------------------------------------------------------------------------------
-
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
@@ -456,21 +352,17 @@ int main(int argc, char** argv) {
 
         BeginMode3D(camera);
 
-        // Set floor model texture tiling and emissive color parameters on shader
-        SetShaderValue(shader, textureTilingLoc, &floorTextureTiling, SHADER_UNIFORM_VEC2);
-        Vector4 floorEmissiveColor = ColorNormalize(floor.materials[0].maps[MATERIAL_MAP_EMISSION].color);
-        SetShaderValue(shader, emissiveColorLoc, &floorEmissiveColor, SHADER_UNIFORM_VEC4);
 
-        DrawModel(floor, (Vector3){0.0f, 0.0f, 0.0f}, 5.0f, WHITE); // Draw floor model
-
-        // Set old car model texture tiling, emissive color and emissive intensity parameters on shader
         SetShaderValue(shader, textureTilingLoc, &carTextureTiling, SHADER_UNIFORM_VEC2);
         Vector4 carEmissiveColor = ColorNormalize(car.materials[0].maps[MATERIAL_MAP_EMISSION].color);
         SetShaderValue(shader, emissiveColorLoc, &carEmissiveColor, SHADER_UNIFORM_VEC4);
-        float emissiveIntensity = .1f;
+        float emissiveIntensity = .01f;
         SetShaderValue(shader, emissiveIntensityLoc, &emissiveIntensity, SHADER_UNIFORM_FLOAT);
 
-        DrawModel(car, (Vector3){0.0f, 0.0f, 0.0f}, 0.25f, WHITE); // Draw car model
+        DrawModel(car, (Vector3){0.0f, -0.1f, -10.0f}, 0.05, WHITE); // Draw car model
+        // DrawModel(stoplight, (Vector3){-0.0f, 0.0f, -4.0f}, 10.0f, WHITE); // Draw bus stop
+
+        DrawModel(city, (Vector3){75.0f, 0.0f, 75.0f}, .01, WHITE);
 
         // Draw spheres to show the lights positions
         for (int i = 0; i < MAX_LIGHTS; i++) {
@@ -489,22 +381,26 @@ int main(int argc, char** argv) {
         //     DrawSphereEx(particle_arr[i].p, 0.1f, 2, 2, particle_color);
         // }
 
-        DrawMeshInstanced(rdropmesh, matInstances, transforms, particle_count);
+        BeginBlendMode(BLEND_ADDITIVE);
+        DrawMeshInstanced(rdropmesh, matInstances, transforms, MAX_PARTICLES);
+        EndBlendMode();
 
+        if (logging) {
+            DrawSphere(camera.position, .5, RED);
+        }
 
 
         EndMode3D();
 
-        // GuiLabel((Rectangle){ 10 pw, 40 ph, 90 pw, 24 ph }, "Toggle Rain:");
-        // GuiToggle((Rectangle){90 pw, 40 ph, 60 pw, 24 ph }, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
+        GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Camera Orbit:");
+        GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_orbit) ? "enabled" : "disabled"), &toggle_orbit);
 
-        GuiLabel((Rectangle){1 pw, 20 ph, 5 pw, 3 ph}, "Toggle Rain:");
-        GuiToggle((Rectangle){6 pw, 20 ph, 5 pw, 3 ph}, ((toggle_rain) ? "enabled" : "disabled"), &toggle_rain);
+        GuiLabel((Rectangle){1 pw, 25 ph, 5 pw, 3 ph}, "Pause Time:");
+        GuiToggle((Rectangle){6 pw, 25 ph, 5 pw, 3 ph}, ((toggle_pause) ? "enabled" : "disabled"), &toggle_pause);
 
+         DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
 
-        // DrawText("Toggle lights: [1][2][3][4]", 10, 40, 20, LIGHTGRAY);
-
-        // DrawText("(c) Old Rusty Car model by Renafox (https://skfb.ly/LxRy)", screenWidth - 320, screenHeight - 20, 10, LIGHTGRAY);
+        DrawText("(c) Toyota Landcruiser model by Renafox (https://skfb.ly/MyHv)", screenWidth - 380, screenHeight - 20, 10, LIGHTGRAY);
 
         DrawFPS(10, 10);
 
@@ -521,21 +417,21 @@ int main(int argc, char** argv) {
     car.materials[0].maps = NULL;
     UnloadModel(car);
 
-    floor.materials[0].shader = (Shader){0};
-    UnloadMaterial(floor.materials[0]);
-    floor.materials[0].maps = NULL;
-    UnloadModel(floor);
+    city.materials[0].shader = (Shader){0};
+    UnloadMaterial(city.materials[0]);
+    city.materials[0].maps = NULL;
+    UnloadModel(city);
 
     UnloadShader(shader); // Unload Shader
 
     CloseWindow(); // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+                   //--------------------------------------------------------------------------------------
 
     return 0;
 }
 
 // Create light with provided data
-// NOTE: It updated the global lightCount and it's limited to MAX_LIGHTS
+// NOTE: It updates the global lightCount and it's limited to MAX_LIGHTS
 static Light CreateLight(int type, Vector3 position, Vector3 target, Color color, float intensity, Shader shader) {
     Light light = {0};
 
